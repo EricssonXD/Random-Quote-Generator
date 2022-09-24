@@ -1,0 +1,164 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:random_verse/provider/quotelist.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class ScreenList extends StatefulWidget {
+  const ScreenList({super.key});
+
+  @override
+  State<ScreenList> createState() => _ScreenListState();
+}
+
+class _ScreenListState extends State<ScreenList>
+    with SingleTickerProviderStateMixin {
+  List<String> list = [];
+  late SharedPreferences sharedPreferences;
+  late TextEditingController controller;
+
+  @override
+  void initState() {
+    loadSharedPreferencesAndData();
+    controller = TextEditingController();
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+
+    super.dispose();
+  }
+
+  void loadSharedPreferencesAndData() async {
+    sharedPreferences = await SharedPreferences.getInstance();
+    loadData();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        floatingActionButton: FloatingActionButton(
+          child: const Icon(Icons.add),
+          onPressed: () => goToNewItemView(),
+        ),
+        body: list.isEmpty ? emptyList() : buildListView());
+  }
+
+  Widget emptyList() {
+    return const Center(child: Text('No items'));
+  }
+
+  Widget buildListView() {
+    return ListView.builder(
+      itemCount: list.length,
+      itemBuilder: (BuildContext context, int index) {
+        return buildItem(list[index], index);
+      },
+    );
+  }
+
+  Widget buildItem(String item, index) {
+    return Dismissible(
+      key: Key('${item.hashCode}'),
+      background: Container(color: Colors.red[700]),
+      onDismissed: (direction) => removeItem(item),
+      direction: DismissDirection.startToEnd,
+      child: buildListTile(item, index),
+    );
+  }
+
+  Widget buildListTile(String item, int index) {
+    return ListTile(
+      onTap: () => goToEditItemView(item),
+      onLongPress: () => goToEditItemView(item),
+      title: Text(
+        item,
+        key: Key('item-$index'),
+      ),
+    );
+  }
+
+  void goToNewItemView() {
+    editDialog();
+  }
+
+  void addItem(String item) {
+    // Insert an item into the top of our list, on index zero
+    list.insert(0, item);
+    saveData();
+  }
+
+  void goToEditItemView(item) async {
+    // We re-use the NewTodoView and push it to the Navigator stack just like
+    // before, but now we send the title of the item on the class constructor
+    // and expect a new title to be returned so that we can edit the item
+    final title = await editDialog();
+    if (title != null) {
+      editItem(item, title);
+      setState(() {});
+    }
+  }
+
+  void editItem(String item, String title) {
+    item = title;
+    saveData();
+  }
+
+  void removeItem(String item) {
+    list.remove(item);
+    saveData();
+  }
+
+  void loadData() {
+    var listString = sharedPreferences.getStringList('list');
+    if (listString != null) {
+      context.read<QuoteList>().writeList(listString);
+      list = listString;
+      setState(() {});
+    }
+  }
+
+  void saveData() {
+    sharedPreferences.setStringList('list', context.read<QuoteList>().quotes);
+  }
+
+  Future<String?> editDialog() => showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Edit Quote'),
+          content: TextField(
+            autofocus: true,
+            decoration: const InputDecoration(
+              hintText: 'Enter your desired quote',
+            ),
+            controller: controller,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => submit(),
+              child: const Text('Submit'),
+            )
+          ],
+        ),
+      );
+
+  void submit() {
+    Navigator.of(context).pop(controller.text);
+
+    controller.clear();
+  }
+}
+
+// class QuoteBlocks extends StatelessWidget {
+//   const QuoteBlocks({super.key});
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Container(
+//       Text(
+        
+//       ),
+//     );
+//   }
+// }
