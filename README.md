@@ -1,6 +1,5 @@
-# random_verse
+# My First Flutter project / Github Comit
 
-My First Flutter project.
 
 ## Simple Messing Around
 
